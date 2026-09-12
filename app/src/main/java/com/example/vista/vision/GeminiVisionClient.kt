@@ -17,7 +17,15 @@ data class GeminiVisionResult(
 data class GeminiObject(
     val label: String,
     val confidence: Float,
-    val direction: String
+    val direction: String,
+    val box: GeminiBox?
+)
+
+data class GeminiBox(
+    val left: Float,
+    val top: Float,
+    val right: Float,
+    val bottom: Float
 )
 
 class GeminiVisionClient(
@@ -49,11 +57,20 @@ class GeminiVisionClient(
             if (objectsJson != null) {
                 for (index in 0 until objectsJson.length()) {
                     val item = objectsJson.getJSONObject(index)
+                    val boxJson = item.optJSONObject("box")
                     add(
                         GeminiObject(
                             label = item.optString("label", "Unknown object"),
                             confidence = item.optDouble("confidence", 0.0).toFloat(),
-                            direction = item.optString("direction", "ahead")
+                            direction = item.optString("direction", "ahead"),
+                            box = boxJson?.let {
+                                GeminiBox(
+                                    left = it.optDouble("left", 0.0).toFloat(),
+                                    top = it.optDouble("top", 0.0).toFloat(),
+                                    right = it.optDouble("right", 1.0).toFloat(),
+                                    bottom = it.optDouble("bottom", 1.0).toFloat()
+                                )
+                            }
                         )
                     )
                 }

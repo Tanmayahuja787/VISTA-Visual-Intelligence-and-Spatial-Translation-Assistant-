@@ -42,9 +42,14 @@ async def analyze(request: AnalyzeRequest) -> dict[str, Any]:
         "Analyze this camera image for an assistive vision app. "
         "Return only valid JSON with this shape: "
         '{"description": string, "objects": [{"label": string, '
-        '"confidence": number, "direction": string}]} . '
+        '"confidence": number, "direction": string, '
+        '"box": {"left": number, "top": number, "right": number, '
+        '"bottom": number}}]} . '
         "List only clearly visible objects; do not guess or infer hidden objects. "
         "Use confidence values from 0 to 1 based on visual certainty. "
+        "Return box coordinates as normalized numbers from 0 to 1 relative to the "
+        "image, where left/top is the upper-left corner and right/bottom is the "
+        "lower-right corner. "
         "Use common object names, and mention stairs, people, animals, obstacles, "
         "and everyday objects only when visibly present."
     )

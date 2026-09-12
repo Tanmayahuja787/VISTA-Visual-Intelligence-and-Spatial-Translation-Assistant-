@@ -4,11 +4,10 @@ import android.content.Context
 import android.util.Log
 import androidx.camera.core.ImageProxy
 import com.example.vista.domain.model.DetectionCategory
+import com.example.vista.domain.model.DetectionBox
 import com.example.vista.domain.model.DetectionItem
 import com.example.vista.vision.GeminiVisionClient
-import org.tensorflow.lite.support.image.TensorImage
-import org.tensorflow.lite.task.core.BaseOptions
-import org.tensorflow.lite.task.vision.detector.ObjectDetector
+import com.example.vista.vision.YoloV8TfliteDetector
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
@@ -21,19 +20,7 @@ import kotlinx.coroutines.sync.withLock
 
 class TensorFlowLiteDetectionEngine(context: Context) : DetectionEngine {
 
-    private val detector = ObjectDetector.createFromFileAndOptions(
-        context,
-        "efficientdet_lite2.tflite",
-        ObjectDetector.ObjectDetectorOptions.builder()
-            .setBaseOptions(
-                BaseOptions.builder()
-                    .setNumThreads(4)
-                    .build()
-            )
-            .setMaxResults(5)
-            .setScoreThreshold(0.55f)
-            .build()
-    )
+    private val detector = YoloV8TfliteDetector(context)
     private val detectorMutex = Mutex()
     private val geminiClient = GeminiVisionClient()
     private var lastGeminiRequestAt = 0L
@@ -48,14 +35,18 @@ class TensorFlowLiteDetectionEngine(context: Context) : DetectionEngine {
         return try {
             detectorMutex.withLock {
                 val bitmap = imageProxy.toBitmap()
-                val image = TensorImage.fromBitmap(bitmap)
-                val localResults = detector.detect(image).mapNotNull { detection ->
-                    val category = detection.categories.maxByOrNull { it.score } ?: return@mapNotNull null
+                val localResults = detector.detect(bitmap).map { detection ->
                     DetectionItem(
-                        label = category.displayName.ifBlank { category.label },
-                        confidence = category.score,
-                        category = categoryFor(category.label),
-                        description = "${category.displayName.ifBlank { category.label }} detected"
+                        label = detection.label,
+                        confidence = detection.confidence,
+                        category = categoryFor(detection.label),
+                        description = "${detection.label} detected",
+                        box = DetectionBox(
+                            left = detection.left,
+                            top = detection.top,
+                            right = detection.right,
+                            bottom = detection.bottom
+                        )
                     )
                 }
                 val now = System.currentTimeMillis()
@@ -74,7 +65,15 @@ class TensorFlowLiteDetectionEngine(context: Context) : DetectionEngine {
                                         label = it.label,
                                         confidence = it.confidence,
                                         category = categoryFor(it.label),
-                                        description = "${it.label} ${it.direction}"
+                                        description = "${it.label} ${it.direction}",
+                                        box = it.box?.let { box ->
+                                            DetectionBox(
+                                                left = box.left.coerceIn(0f, 1f),
+                                                top = box.top.coerceIn(0f, 1f),
+                                                right = box.right.coerceIn(0f, 1f),
+                                                bottom = box.bottom.coerceIn(0f, 1f)
+                                            )
+                                        }
                                     )
                                 }
                             Log.d(TAG, "Gemini returned ${latestGeminiResults.size} objects")

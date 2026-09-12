@@ -83,6 +83,7 @@ dependencies {
   implementation(libs.androidx.camera.lifecycle)
   implementation(libs.androidx.camera.view)
   implementation(libs.tensorflow.lite.task.vision)
+  implementation(files("libs/tensorflow-lite-runtime.aar"))
 
   // Material Icons
   implementation(libs.androidx.compose.material.icons.extended)

@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -55,6 +56,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -138,6 +141,11 @@ fun VistaMainScreen(
                     }
                 )
 
+                DetectionBoxesOverlay(
+                    detectedItems = uiState.detectedItems,
+                    modifier = Modifier.fillMaxSize()
+                )
+
                 // Top status indicator banner over camera
                 DetectionStatusBadge(
                     isDetecting = uiState.isDetecting,
@@ -156,6 +164,29 @@ fun VistaMainScreen(
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                 )
             }
+
+        }
+    }
+}
+
+@Composable
+private fun DetectionBoxesOverlay(
+    detectedItems: List<DetectionItem>,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        detectedItems.forEach { item ->
+            val box = item.box ?: return@forEach
+            val left = box.left.coerceIn(0f, 1f) * size.width
+            val top = box.top.coerceIn(0f, 1f) * size.height
+            val right = box.right.coerceIn(0f, 1f) * size.width
+            val bottom = box.bottom.coerceIn(0f, 1f) * size.height
+            drawRect(
+                color = Color(0xFF00E676),
+                topLeft = androidx.compose.ui.geometry.Offset(left, top),
+                size = androidx.compose.ui.geometry.Size(right - left, bottom - top),
+                style = Stroke(width = 5f, cap = StrokeCap.Round)
+            )
         }
     }
 }
@@ -187,7 +218,7 @@ fun VistaTopBar(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "AI Assistive Companion",
+                    text = "YOLOv8n • AI Assistive Companion",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
@@ -264,7 +295,7 @@ fun DetectionStatusBadge(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = if (isDetecting) "LIVE SCANNING ACTIVE" else "DETECTION PAUSED",
+                text = if (isDetecting) "YOLOv8n • LIVE SCANNING" else "YOLOv8n • DETECTION PAUSED",
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.8.sp
